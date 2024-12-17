@@ -3,10 +3,10 @@ package places
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
 
@@ -57,12 +57,16 @@ func (a *API) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(places) == 0 {
-		fmt.Fprint(w, "[]")
+	paginationMetadata, err := a.repository.PaginationMetadata()
+	if err != nil {
+		a.logger.Error().Str(l.KeyReqID, reqID).Err(err).Msg("")
+		e.ServerError(w, e.RespDBDataAccessFailure)
 		return
 	}
 
-	if err := json.NewEncoder(w).Encode(places.ToDto()); err != nil {
+	paginationMetadata.Places = places.ToDto()
+
+	if err := json.NewEncoder(w).Encode(paginationMetadata); err != nil {
 		a.logger.Error().Str(l.KeyReqID, reqID).Err(err).Msg("")
 		e.ServerError(w, e.RespJSONEncodeFailure)
 		return
@@ -115,4 +119,126 @@ func (a *API) Create(w http.ResponseWriter, r *http.Request) {
 
 	a.logger.Info().Str(l.KeyReqID, reqID).Uint8("id", referenceWay.ID).Msg("new place created")
 	w.WriteHeader(http.StatusCreated)
+}
+
+// Read godoc
+//
+//	@summary		Read place
+//	@description	Read place
+//	@tags			place
+//	@accept			json
+//	@produce		json
+//	@param			id	path		string	true	"Reference Way ID"
+//	@success		200	{object}	DTO
+//	@failure		400	{object}	err.Error
+//	@failure		404
+//	@failure		500	{object}	err.Error
+//	@router			/places/{id} [get]
+func (a *API) Read(w http.ResponseWriter, r *http.Request) {
+	reqID := ctxUtil.RequestID(r.Context())
+
+	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 8)
+	if err != nil {
+		e.BadRequest(w, e.RespInvalidURLParamID)
+		return
+	}
+
+	place, err := a.repository.Read(uint8(id))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		a.logger.Error().Str(l.KeyReqID, reqID).Err(err).Msg("")
+		e.ServerError(w, e.RespDBDataAccessFailure)
+		return
+	}
+
+	dto := place.ToDto()
+	if err := json.NewEncoder(w).Encode(dto); err != nil {
+		a.logger.Error().Str(l.KeyReqID, reqID).Err(err).Msg("")
+		e.ServerError(w, e.RespJSONEncodeFailure)
+		return
+	}
+}
+
+// Read godoc
+//
+//	@summary		Read place
+//	@description	Read place
+//	@tags			place
+//	@accept			json
+//	@produce		json
+//	@param			id	path		string	true	"Reference Way ID"
+//	@success		200	{object}	DTO
+//	@failure		400	{object}	err.Error
+//	@failure		404
+//	@failure		500	{object}	err.Error
+//	@router			/places/{id} [get]
+func (a *API) Filter(w http.ResponseWriter, r *http.Request) {
+	reqID := ctxUtil.RequestID(r.Context())
+
+	page, err := strconv.ParseUint(r.URL.Query().Get("page"), 10, 8)
+	if err != nil {
+		a.logger.Error().Str(l.KeyReqID, reqID).Err(err).Msg("")
+		e.ServerError(w, e.RespInvalidQueryParamPage)
+		return
+	}
+
+	filters := Filters{
+		ServiceTypes: parseUint8SliceQuery(r, "service-type"),
+		Segments:     parseUint8SliceQuery(r, "segment"),
+		Regionals:    parseUint8SliceQuery(r, "regional"),
+		Name:         parseStringSliceQuery(r, "name"),
+	}
+
+	places, conditionals, err := a.repository.Filter(filters, uint8(page))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		a.logger.Error().Str(l.KeyReqID, reqID).Err(err).Msg("")
+		e.ServerError(w, e.RespDBDataAccessFailure)
+		return
+	}
+
+	paginationMetadata, err := a.repository.FilterPaginationMetadata(conditionals)
+	if err != nil {
+		a.logger.Error().Str(l.KeyReqID, reqID).Err(err).Msg("")
+		e.ServerError(w, e.RespDBDataAccessFailure)
+		return
+	}
+
+	paginationMetadata.Places = places.ToDto()
+
+	if err := json.NewEncoder(w).Encode(paginationMetadata); err != nil {
+		a.logger.Error().Str(l.KeyReqID, reqID).Err(err).Msg("")
+		e.ServerError(w, e.RespJSONEncodeFailure)
+		return
+	}
+}
+
+func parseUint8SliceQuery(r *http.Request, param string) []uint8 {
+	values := r.URL.Query()[param]
+	var result []uint8
+	for _, val := range values {
+		parsedVal, err := strconv.ParseUint(val, 10, 8)
+		if err == nil {
+			result = append(result, uint8(parsedVal))
+		}
+	}
+	return result
+}
+
+func parseStringSliceQuery(r *http.Request, param string) string {
+	values := r.URL.Query()[param]
+	var result string
+	for _, val := range values {
+		result = val
+		break
+	}
+	return result
 }

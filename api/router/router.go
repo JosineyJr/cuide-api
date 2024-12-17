@@ -154,6 +154,8 @@ func New(l *zerolog.Logger, v *validator.Validate, db *sql.DB) *chi.Mux {
 		placeAPI := places.New(l, v, db)
 		r.Method(http.MethodGet, "/places", requestlog.NewHandler(placeAPI.List, l))
 		r.Method(http.MethodPost, "/places", requestlog.NewHandler(placeAPI.Create, l))
+		r.Method(http.MethodGet, "/places/{id}", requestlog.NewHandler(placeAPI.Read, l))
+		r.Method(http.MethodGet, "/places/filter", requestlog.NewHandler(placeAPI.Filter, l))
 	})
 
 	return r

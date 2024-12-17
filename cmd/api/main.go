@@ -17,7 +17,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const fmtDBString = "host=%s user=%s password=%s dbname=%s port=%d sslmode=disable"
+const fmtDBString = "host=%s user=%s password=%s dbname=%s port=%d sslmode=require"
 
 //	@title			CUIDE API
 //	@version		1.0
