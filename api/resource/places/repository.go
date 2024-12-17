@@ -255,7 +255,11 @@ func (r *Repository) Filter(filters Filters, page uint8) (Places, string, error)
 
 	if filters.Name != "" {
 		conditionals += " AND "
-		conditionals += fmt.Sprintf(" lower(s.nome) LIKE lower('%%%s%%')", filters.Name)
+		conditionals += fmt.Sprintf(
+			" (lower(s.nome) LIKE lower('%%%s%%') OR lower(s.tipo_atendimento) LIKE lower('%%%s%%'))",
+			filters.Name,
+			filters.Name,
+		)
 	}
 
 	query := fmt.Sprintf(`
