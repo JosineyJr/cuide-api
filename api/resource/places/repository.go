@@ -2,6 +2,7 @@ package places
 
 import (
 	"context"
+	txUtil "cuide/util/db-tx"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -212,14 +213,34 @@ func (r *Repository) Update(place *Place) (int64, error) {
 }
 
 func (r *Repository) Delete(id uint8) (int64, error) {
-	result, err := r.db.Exec("DELETE FROM public.eixo WHERE id = $1;", id)
-	if err != nil {
-		return 0, err
-	}
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return 0, err
-	}
+	var rows int64
+
+	err := txUtil.CallTx(context.Background(), r.db, func(tx *sql.Tx) error {
+		result, err := r.db.Exec("DELETE FROM public.regionais_servico WHERE servico_id = $1;", id)
+		if err != nil {
+			return err
+		}
+
+		rws, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		rows = rws
+
+		result, err = r.db.Exec("DELETE FROM public.servico WHERE id = $1;", id)
+		if err != nil {
+			return err
+		}
+
+		rws, err = result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		rows = rws
+
+		return nil
+	})
+
 	return rows, err
 }
 

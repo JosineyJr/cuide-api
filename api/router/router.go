@@ -9,11 +9,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog"
 
-	admission_criteria "cuide/api/resource/admission-criteria"
-	attendance_types "cuide/api/resource/attendance-types"
 	"cuide/api/resource/health"
 	"cuide/api/resource/places"
-	reference_ways "cuide/api/resource/reference-ways"
 	"cuide/api/resource/regionals"
 	"cuide/api/resource/segments"
 	service_types "cuide/api/resource/service-types"
@@ -48,33 +45,6 @@ func New(l *zerolog.Logger, v *validator.Validate, db *sql.DB) *chi.Mux {
 		r.Method(http.MethodPut, "/regionals/{id}", requestlog.NewHandler(regionalAPI.Update, l))
 		r.Method(http.MethodDelete, "/regionals/{id}", requestlog.NewHandler(regionalAPI.Delete, l))
 
-		attendanceTypeAPI := attendance_types.New(l, v, db)
-		r.Method(
-			http.MethodGet,
-			"/attendance-types",
-			requestlog.NewHandler(attendanceTypeAPI.List, l),
-		)
-		r.Method(
-			http.MethodPost,
-			"/attendance-types",
-			requestlog.NewHandler(attendanceTypeAPI.Create, l),
-		)
-		r.Method(
-			http.MethodGet,
-			"/attendance-types/{id}",
-			requestlog.NewHandler(attendanceTypeAPI.Read, l),
-		)
-		r.Method(
-			http.MethodPut,
-			"/attendance-types/{id}",
-			requestlog.NewHandler(attendanceTypeAPI.Update, l),
-		)
-		r.Method(
-			http.MethodDelete,
-			"/attendance-types/{id}",
-			requestlog.NewHandler(attendanceTypeAPI.Delete, l),
-		)
-
 		segmentAPI := segments.New(l, v, db)
 		r.Method(http.MethodGet, "/segments", requestlog.NewHandler(segmentAPI.List, l))
 		r.Method(http.MethodPost, "/segments", requestlog.NewHandler(segmentAPI.Create, l))
@@ -101,60 +71,11 @@ func New(l *zerolog.Logger, v *validator.Validate, db *sql.DB) *chi.Mux {
 			requestlog.NewHandler(serviceTypeAPI.Delete, l),
 		)
 
-		referenceWaysAPI := reference_ways.New(l, v, db)
-		r.Method(http.MethodGet, "/reference-ways", requestlog.NewHandler(referenceWaysAPI.List, l))
-		r.Method(
-			http.MethodPost,
-			"/reference-ways",
-			requestlog.NewHandler(referenceWaysAPI.Create, l),
-		)
-		r.Method(
-			http.MethodGet,
-			"/reference-ways/{id}",
-			requestlog.NewHandler(referenceWaysAPI.Read, l),
-		)
-		r.Method(
-			http.MethodPut,
-			"/reference-ways/{id}",
-			requestlog.NewHandler(referenceWaysAPI.Update, l),
-		)
-		r.Method(
-			http.MethodDelete,
-			"/reference-ways/{id}",
-			requestlog.NewHandler(referenceWaysAPI.Delete, l),
-		)
-
-		admissionCriteriaAPI := admission_criteria.New(l, v, db)
-		r.Method(
-			http.MethodGet,
-			"/admission-criteria",
-			requestlog.NewHandler(admissionCriteriaAPI.List, l),
-		)
-		r.Method(
-			http.MethodPost,
-			"/admission-criteria",
-			requestlog.NewHandler(admissionCriteriaAPI.Create, l),
-		)
-		r.Method(
-			http.MethodGet,
-			"/admission-criteria/{id}",
-			requestlog.NewHandler(admissionCriteriaAPI.Read, l),
-		)
-		r.Method(
-			http.MethodPut,
-			"/admission-criteria/{id}",
-			requestlog.NewHandler(admissionCriteriaAPI.Update, l),
-		)
-		r.Method(
-			http.MethodDelete,
-			"/admission-criteria/{id}",
-			requestlog.NewHandler(admissionCriteriaAPI.Delete, l),
-		)
-
 		placeAPI := places.New(l, v, db)
 		r.Method(http.MethodGet, "/places", requestlog.NewHandler(placeAPI.List, l))
 		r.Method(http.MethodPost, "/places", requestlog.NewHandler(placeAPI.Create, l))
 		r.Method(http.MethodGet, "/places/{id}", requestlog.NewHandler(placeAPI.Read, l))
+		r.Method(http.MethodDelete, "/places/{id}", requestlog.NewHandler(placeAPI.Delete, l))
 		r.Method(http.MethodGet, "/places/filter", requestlog.NewHandler(placeAPI.Filter, l))
 	})
 

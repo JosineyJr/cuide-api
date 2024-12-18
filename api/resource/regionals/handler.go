@@ -107,7 +107,7 @@ func (a *API) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.logger.Info().Str(l.KeyReqID, reqID).Uint8("id", regional.ID).Msg("new book created")
+	a.logger.Info().Str(l.KeyReqID, reqID).Uint8("id", regional.ID).Msg("new regional created")
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -210,7 +210,7 @@ func (a *API) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.logger.Info().Str(l.KeyReqID, reqID).Uint8("id", regional.ID).Msg("book updated")
+	a.logger.Info().Str(l.KeyReqID, reqID).Uint8("id", regional.ID).Msg("regional updated")
 }
 
 // Delete godoc
@@ -246,5 +246,5 @@ func (a *API) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	a.logger.Info().Str(l.KeyReqID, reqID).Uint8("id", uint8(id)).Msg("book deleted")
+	a.logger.Info().Str(l.KeyReqID, reqID).Uint8("id", uint8(id)).Msg("regional deleted")
 }

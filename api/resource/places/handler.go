@@ -242,3 +242,39 @@ func parseStringSliceQuery(r *http.Request, param string) string {
 	}
 	return result
 }
+
+// Delete godoc
+//
+//	@summary		Delete places
+//	@description	Delete places
+//	@tags			places
+//	@accept			json
+//	@produce		json
+//	@param			id	path	string	true	"Place ID"
+//	@success		200
+//	@failure		400	{object}	err.Error
+//	@failure		404
+//	@failure		500	{object}	err.Error
+//	@router			/places/{id} [delete]
+func (a *API) Delete(w http.ResponseWriter, r *http.Request) {
+	reqID := ctxUtil.RequestID(r.Context())
+
+	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 8)
+	if err != nil {
+		e.BadRequest(w, e.RespInvalidURLParamID)
+		return
+	}
+
+	rows, err := a.repository.Delete(uint8(id))
+	if err != nil {
+		a.logger.Error().Str(l.KeyReqID, reqID).Err(err).Msg("")
+		e.ServerError(w, e.RespDBDataRemoveFailure)
+		return
+	}
+	if rows == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	a.logger.Info().Str(l.KeyReqID, reqID).Uint8("id", uint8(id)).Msg("place deleted")
+}
