@@ -170,7 +170,7 @@ func (a *API) Read(w http.ResponseWriter, r *http.Request) {
 //	@tags			place
 //	@accept			json
 //	@produce		json
-//	@param			id	path		string	true	"Reference Way ID"
+//	@param			id	path		string	true	"Place ID"
 //	@success		200	{object}	DTO
 //	@failure		400	{object}	err.Error
 //	@failure		404
@@ -241,6 +241,66 @@ func parseStringSliceQuery(r *http.Request, param string) string {
 		break
 	}
 	return result
+}
+
+// Update godoc
+//
+//	@summary		Update place
+//	@description	Update place
+//	@tags			places
+//	@accept			json
+//	@produce		json
+//	@param			id		path	string	true	"Place ID"
+//	@param			body	body	Form	true	"Place form"
+//	@success		200
+//	@failure		400	{object}	err.Error
+//	@failure		404
+//	@failure		422	{object}	err.Errors
+//	@failure		500	{object}	err.Error
+//	@router			/places/{id} [put]
+func (a *API) Update(w http.ResponseWriter, r *http.Request) {
+	reqID := ctxUtil.RequestID(r.Context())
+
+	id, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 8)
+	if err != nil {
+		e.BadRequest(w, e.RespInvalidURLParamID)
+		return
+	}
+
+	form := &Form{}
+	if err := json.NewDecoder(r.Body).Decode(form); err != nil {
+		a.logger.Error().Str(l.KeyReqID, reqID).Err(err).Msg("")
+		e.BadRequest(w, e.RespJSONDecodeFailure)
+		return
+	}
+
+	if err := a.validator.Struct(form); err != nil {
+		respBody, err := json.Marshal(validatorUtil.ToErrResponse(err))
+		if err != nil {
+			a.logger.Error().Str(l.KeyReqID, reqID).Err(err).Msg("")
+			e.ServerError(w, e.RespJSONEncodeFailure)
+			return
+		}
+
+		e.ValidationErrors(w, respBody)
+		return
+	}
+
+	place := form.ToModel()
+	place.ID = uint8(id)
+
+	rows, err := a.repository.Update(r.Context(), &place)
+	if err != nil {
+		a.logger.Error().Str(l.KeyReqID, reqID).Err(err).Msg("")
+		e.ServerError(w, e.RespDBDataUpdateFailure)
+		return
+	}
+	if rows == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	a.logger.Info().Str(l.KeyReqID, reqID).Uint8("id", place.ID).Msg("place updated")
 }
 
 // Delete godoc

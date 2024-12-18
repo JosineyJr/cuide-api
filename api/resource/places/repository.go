@@ -196,22 +196,6 @@ func (r *Repository) Read(id uint8) (*Place, error) {
 	return &place, nil
 }
 
-func (r *Repository) Update(place *Place) (int64, error) {
-	result, err := r.db.Exec(
-		"UPDATE public.eixo SET nome = $1 WHERE id= $2;",
-		place.Name,
-		place.ID,
-	)
-	if err != nil {
-		return 0, err
-	}
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return 0, err
-	}
-	return rows, err
-}
-
 func (r *Repository) Delete(id uint8) (int64, error) {
 	var rows int64
 
@@ -412,4 +396,104 @@ func (r *Repository) FilterPaginationMetadata(filters string) (pm PaginationMeta
 	err = r.db.QueryRow(query).Scan(&pm.Metadata.TotalPlaces, &pm.Metadata.Pages)
 
 	return
+}
+
+func (r *Repository) Update(ctx context.Context, place *Place) (int64, error) {
+	var rowsAffected int64
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+
+	result, err := tx.ExecContext(
+		ctx,
+		`UPDATE public.servico
+		SET
+			tipo_servico_id = $1,
+			nome = $2,
+			endereco = $3,
+			contato = $4,
+			site = $5,
+			observacoes = $6,
+			eixo_id = $7,
+			maps_link = $8,
+			google_maps_embed_link = $9,
+			criterios_admissao = $10,
+			tipo_atendimento = $11,
+			forma_encaminhamento = $12
+		WHERE id = $13`,
+		place.ServiceType.ID,
+		place.Name,
+		place.Address,
+		place.PhoneNumber,
+		place.Website,
+		place.Observations,
+		place.Segment.ID,
+		place.GoogleMapsLink,
+		place.GoogleMapsEmbedLink,
+		place.AdmissionCriteria,
+		place.AttendanceType,
+		place.ReferenceWay,
+		place.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	rw, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	rowsAffected += rw
+
+	result, err = tx.ExecContext(
+		ctx,
+		`DELETE FROM public.regionais_servico WHERE servico_id = $1`,
+		place.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	rw, err = result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	rowsAffected += rw
+
+	stmt, err := tx.PrepareContext(
+		ctx,
+		`INSERT INTO public.regionais_servico (servico_id, regional_id) VALUES ($1, $2)`,
+	)
+	if err != nil {
+		return 0, err
+	}
+	defer stmt.Close()
+
+	for _, rs := range place.Regionals {
+		result, err = stmt.Exec(place.ID, rs.ID)
+		if err != nil {
+			return 0, err
+		}
+
+		rw, err = result.RowsAffected()
+		if err != nil {
+			return 0, err
+		}
+		rowsAffected += rw
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+
+	return rowsAffected, nil
 }

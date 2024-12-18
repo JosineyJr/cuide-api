@@ -75,6 +75,7 @@ func New(l *zerolog.Logger, v *validator.Validate, db *sql.DB) *chi.Mux {
 		r.Method(http.MethodGet, "/places", requestlog.NewHandler(placeAPI.List, l))
 		r.Method(http.MethodPost, "/places", requestlog.NewHandler(placeAPI.Create, l))
 		r.Method(http.MethodGet, "/places/{id}", requestlog.NewHandler(placeAPI.Read, l))
+		r.Method(http.MethodPut, "/places/{id}", requestlog.NewHandler(placeAPI.Update, l))
 		r.Method(http.MethodDelete, "/places/{id}", requestlog.NewHandler(placeAPI.Delete, l))
 		r.Method(http.MethodGet, "/places/filter", requestlog.NewHandler(placeAPI.Filter, l))
 	})
